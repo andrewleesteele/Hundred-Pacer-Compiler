@@ -1,0 +1,54 @@
+    G.add_edge g v1 v2 in
+  List.iter add_edge edges;
+  begin try
+    C.coloring g colors;
+    Some(List.map (fun v -> (v, G.Mark.get (findknown vertices v))) nodes)
+  with
+    | _ -> None
+  end
+
+(* Return all the identifiers that are defined in this expression (e.g. appear
+in let bindings) to use for building an environment *)
+
+let parse_cexpr (ce : cexpr) : string list = 
+  match ce with 
+    | CPrim1(_, ImmId(id)) -> id::[]
+    | CPrim2(_, ImmId(id1), ImmId(id2)) -> id1::id2::[]
+    | CApp(_,_) -> []
+    | CIf(ImmBool(true), , _) -> []
+    | CImmExpr(ImmId(id)) -> id::[]
+    | _ -> []
+
+let getvars (ae : aexpr) : string list =
+  match ae with 
+    | ALet(var, cex, aex) -> (parse_cexpr cex)
+    | ACExpr(cex) -> (parse_cexpr cex)
+  
+let get_colors (registers : reg list) (varlist : string list) (edgelist : (string * string) list) : (location envt) =
+  []
+
+let analyze_let_body (ce : cexpr) : string list = 
+  match ce with 
+    | CPrim1(_, ImmId(id)) -> id::[]
+    | CPrim2(_, ImmId(id1), ImmId(id2)) -> id1::id2::[]
+    | CApp(_,_) -> []
+    | CIf(_, _, _) -> []
+    | CImmExpr(ImmId(id)) -> id::[]
+    | _ -> []
+
+let rec dep_graph_rec (ae : aexpr) : (string * string) list = 
+  match ae with 
+    | ALet(id, cex, aex)-> 
+        let body_var = (analyze_let_body cex) in
+        let mapping = (List.map (fun x->(id, x)) body_var) in
+        mapping@(dep_graph_rec aex)
+    | ACExpr(_) -> []
+and dep_graph (ae : aexpr) : (string * string) list =
+  (dep_graph_rec ae)
+
+let colorful_env (ae : aexpr) : location envt =
+  let deps = dep_graph ae in
+  (* spare_regs is a list that contains the usable registers for your
+  implementation; it is set by the NUMREGS option as well *)
+  get_colors !spare_regs (getvars ae) deps
+
